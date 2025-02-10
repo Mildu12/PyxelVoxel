@@ -57,8 +57,6 @@ def update():
         main_cam.rotate(rotate_speed / FPS, 0.0)
     if pyxel.btn(pyxel.KEY_DOWN):
         main_cam.rotate(-rotate_speed / FPS, 0.0)
-
-    print(main_cam.yaw)
     
 def draw():
     pyxel.cls(6)
