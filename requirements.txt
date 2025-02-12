@@ -1,1 +1,2 @@
+perlin-noise==1.13
 pyxel==2.3.4

@@ -84,7 +84,7 @@ class Point3D:
     def __mul__(self, other: float) -> "Point3D":
         return Point3D(self.x * other, self.y * other, self.z * other)
 
-    def __div__(self, other: float) -> "Point3D":
+    def __truediv__(self, other: float) -> "Point3D":
         return Point3D(self.x / other, self.y / other, self.z / other)
     
     def __neg__(self) -> "Point3D":

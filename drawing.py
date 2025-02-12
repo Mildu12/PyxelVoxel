@@ -1,134 +1,98 @@
 import pyxel
 from positioning import *
 from math import tan, radians, sqrt
+from world_data import *
+from blocks import *
 
 def sign(x) -> int:
     """Returns 1 if x >= 0 and -1 if x < 0"""
     return 1 if x >= 0 else -1
 
-def convex_quad(p1: Point2D, p2: Point2D, p3: Point2D, p4: Point2D, col: int):
-    """
-    Draws a filled-in convex quadrilateral
-    Points in clockwise order
-    """
-    #Divides the quadrilateral into two triangles and draws the two triangles
-    pyxel.tri(p1.x, p1.y, p2.x, p2.y, p4.x, p4.y, col)
-    pyxel.tri(p2.x, p2.y, p3.x, p3.y, p4.x, p4.y, col)
+class Convex_quad:
+    def __init__(self, position_3D, p1: Point2D, p2: Point2D, p3: Point2D, p4: Point2D, col: int, colb: int = 0):
+        self.position_3D: Point3D = position_3D
+        self.p1: Point2D = p1
+        self.p2: Point2D = p2
+        self.p3: Point2D = p3
+        self.p4: Point2D = p4
+        self.col: int = col
+        self.colb: int = colb
 
-def convex_quad_border(p1: Point2D, p2: Point2D, p3: Point2D, p4: Point2D, col: int):
-    """
-    Draws a 1 pixel thick border of the convex quadrilateral 
-    Points in clockwise order
-    """
-    #Draws all 4 sides one by one as lines
-    pyxel.line(p1.x, p1.y, p2.x, p2.y, col)
-    pyxel.line(p2.x, p2.y, p3.x, p3.y, col)
-    pyxel.line(p3.x, p3.y, p4.x, p4.y, col)
-    pyxel.line(p4.x, p4.y, p1.x, p1.y, col)
 
-def convex_quad_with_border(p1: Point2D, p2: Point2D, p3: Point2D, p4: Point2D, col: int, colb: int = 0):
-    """
-    Combination of convex_quad and convex_quad_border
-    Points in clockwise order
-    """
+    def draw_filled(self):
+        """
+        Draws a filled-in convex quadrilateral
+        Points in clockwise order
+        """
+        #Divides the quadrilateral into two triangles and draws the two triangles
+        pyxel.tri(self.p1.x, self.p1.y, self.p2.x, self.p2.y, self.p4.x, self.p4.y, self.col)
+        pyxel.tri(self.p2.x, self.p2.y, self.p3.x, self.p3.y, self.p4.x, self.p4.y, self.col)
 
-    convex_quad(p1, p2, p3, p4, col)
-    convex_quad_border(p1, p2, p3, p4, colb)
+    def draw_border(self):
+        """
+        Draws a 1 pixel thick border of the convex quadrilateral 
+        Points in clockwise order
+        """
+        #Draws all 4 sides one by one as lines
+        pyxel.line(self.p1.x, self.p1.y, self.p2.x, self.p2.y, self.colb)
+        pyxel.line(self.p2.x, self.p2.y, self.p3.x, self.p3.y, self.colb)
+        pyxel.line(self.p3.x, self.p3.y, self.p4.x, self.p4.y, self.colb)
+        pyxel.line(self.p4.x, self.p4.y, self.p1.x, self.p1.y, self.colb)
 
-class Block:
-    """Container for basic data of a block"""
-    def __init__(self, block_position: Point3D, top_col: int, side_col: int, bottom_col: int):
-        self.position = block_position
-        self.top_col = top_col
-        self.side_col = side_col
-        self.bottom_col = bottom_col
+    def draw_filled_and_border(self):
+        """
+        Combination of convex_quad and convex_quad_border
+        Points in clockwise order
+        """
+
+        self.draw_filled()
+        self.draw_border()
+    
+    def is_visible(self, screen_size: Point2D) -> bool:
+        points: list[Point2D] = [self.p1, self.p2, self.p3, self.p4]
+
+        visible: bool = False
+
+        for i in points:
+            if i.x >= 0 and i.x < screen_size.x and i.y >= 0 and i.y < screen_size.y:
+                visible = True
+                break
+        
+        return visible
 
 class Camera:
     """Handles drawing of all 3D elements onto the screen"""
     def __init__(self, camera_position: Point3D, fov: float, screen_width, screen_height, pitch: float = 0.0, yaw: float = 0.0):
-        self.position = camera_position
-        self.fov = fov
-        self.pitch = pitch
-        self.yaw = yaw
-        self.screen_width = screen_width
-        self.screen_height = screen_height
-        self.y_fov = (self.fov / self.screen_width * self.screen_height) #Vertical FOV in degrees
+        self.position: Point3D = camera_position
+        self.pitch: float = pitch
+        self.yaw: float = yaw
+        self.screen_width: int = screen_width
+        self.screen_height: int = screen_height
 
-        self.max_slope_x = tan(radians(90 - self.fov / 2.0)) #The maximum slope a point can have relative to the camera and remain on screen in the x dimension
-        self.max_slope_y = tan(radians(90 - self.y_fov / 2.0)) #The maximum slope a point can have relative to the camera and remain on screen in the y dimension
+        self.fov: float
+        self.y_fov: float
+        self.min_slope_x: float
+        self.min_slope_y: float
 
-    def draw_block(self, block: Block):
-        relative_position: Point3D = self.position - block.position
+        self.change_fov(fov)
 
-        #Divides a cube into three quadrilaterals that we need to draw, one for each plane
-        
-        if abs(relative_position.x) > 0.5: #Checks if the quadrilateral on the yz plane is visible from the camera
-        
-            x_plane_pos: float = block.position.x + 0.5 * sign(relative_position.x) #The x position of the yz plane that the quadrilateral is on
-            points: list[Point2D] = [self.project_point_onto_screen(Point3D(x_plane_pos, block.position.y + 0.5, block.position.z + 0.5)), 
-                                     self.project_point_onto_screen(Point3D(x_plane_pos, block.position.y + 0.5, block.position.z - 0.5)), 
-                                     self.project_point_onto_screen(Point3D(x_plane_pos, block.position.y - 0.5, block.position.z - 0.5)), 
-                                     self.project_point_onto_screen(Point3D(x_plane_pos, block.position.y - 0.5, block.position.z + 0.5))] #The projetions onto the screen of the 4 points that make up the quadrilateral
-            
-            #Makes sure at least one of the quadrilateral's points are on screen (this method is not foolproof)
-            quad_is_visible: bool = False
-            for i in points:
-                if i.x >= 0 and i.x < self.screen_width and i.y >= 0 and i.y < self.screen_height:
-                    quad_is_visible = True
-                    break
 
-            if quad_is_visible:
-                convex_quad_with_border(points[0], points[1], points[2], points[3], block.side_col)
-
-        if abs(relative_position.y) > 0.5: #Checks if the quadrilateral on the xz plane is visible from the camera
-
-            y_plane_pos: float = block.position.y + 0.5 * sign(relative_position.y) #The y position of the xz plane that the quadrilateral is on
-            points: list[Point2D] = [self.project_point_onto_screen(Point3D(block.position.x + 0.5, y_plane_pos, block.position.z + 0.5)), 
-                                     self.project_point_onto_screen(Point3D(block.position.x + 0.5, y_plane_pos, block.position.z - 0.5)), 
-                                     self.project_point_onto_screen(Point3D(block.position.x - 0.5, y_plane_pos, block.position.z - 0.5)), 
-                                     self.project_point_onto_screen(Point3D(block.position.x - 0.5, y_plane_pos, block.position.z + 0.5))] #The projetions onto the screen of the 4 points that make up the quadrilateral
-            
-            #Makes sure at least one of the quadrilateral's points are on screen (this method is not foolproof)
-            quad_is_visible = False
-            for i in points:
-                if i.x >= 0 and i.x < self.screen_width and i.y >= 0 and i.y < self.screen_height:
-                    quad_is_visible = True
-                    break
-
-            if quad_is_visible:
-                #Checks whether the block's top color or bottom color should be displayed.
-                if sign(relative_position.y) > 0:
-                    convex_quad_with_border(points[0], points[1], points[2], points[3], block.top_col)
-                else:
-                    convex_quad_with_border(points[0], points[1], points[2], points[3], block.bottom_col)
-            
-        if abs(relative_position.z) > 0.5: #Checks if the quadrilateral on the xy plane is visible from the camera
-    
-            z_plane_pos: float = block.position.z + 0.5 * sign(relative_position.z) #The z position of the xy plane that the quadrilateral is on
-            points: list[Point2D] = [self.project_point_onto_screen(Point3D(block.position.x + 0.5, block.position.y + 0.5, z_plane_pos)), 
-                                     self.project_point_onto_screen(Point3D(block.position.x + 0.5, block.position.y - 0.5, z_plane_pos)), 
-                                     self.project_point_onto_screen(Point3D(block.position.x - 0.5, block.position.y - 0.5, z_plane_pos)), 
-                                     self.project_point_onto_screen(Point3D(block.position.x - 0.5, block.position.y + 0.5, z_plane_pos))] #The projetions onto the screen of the 4 points that make up the quadrilateral
-            
-            #Makes sure at least one of the quadrilateral's points are on screen (this method is not foolproof)
-            quad_is_visible = False
-            for i in points:
-                if i.x >= 0 and i.x < self.screen_width and i.y >= 0 and i.y < self.screen_height:
-                    quad_is_visible = True
-                    break
-
-            if quad_is_visible:
-                convex_quad_with_border(points[0], points[1], points[2], points[3], block.side_col)
+        self.quads_to_draw: list[Convex_quad] = []
 
     def project_point_onto_screen(self, point: Point3D) -> Point2D:
         rotated_point: Point3D = self.rotate_point_around_self(point, self.pitch, self.yaw) #The point, rotated so that its position is relative to the direction of the camera
         relative_rotated_point: Point3D = rotated_point - self.position #The point, relative to both the camera's rotation and position
         
-        slope_x: float = (relative_rotated_point.x / abs(relative_rotated_point.z)) #The slope of the point relative to the camera in the x direction
-        slope_y: float = (relative_rotated_point.y / abs(relative_rotated_point.z)) #The slope of the point relative to the camera in the x direction
+        slope_x: float = (relative_rotated_point.x / abs(relative_rotated_point.z)) if relative_rotated_point.z != 0 else (relative_rotated_point.x / 0.1) #The slope of the point relative to the camera in the x direction
+        slope_y: float = (relative_rotated_point.y / abs(relative_rotated_point.z)) if relative_rotated_point.z != 0 else (relative_rotated_point.y / 0.1) #The slope of the point relative to the camera in the x direction
         
-        projected_point: Point2D = Point2D(slope_x / self.max_slope_x * self.screen_width + self.screen_width / 2, 
-                                           slope_y / self.max_slope_y * self.screen_height * 2 + self.screen_height / 2) 
+        projected_point: Point2D = Point2D(slope_x / self.min_slope_x * self.screen_width + self.screen_width / 2, 
+                                           slope_y / self.min_slope_y * self.screen_height * 2 + self.screen_height / 2) 
+        
+
+        if relative_rotated_point.z < 0:
+            return Point2D(-10, -10)
+        
         #The position of the point on the screen, calculated using the fact that the slope of a point relative to the camera is proportional to its position on screen
         
         return projected_point
@@ -154,6 +118,86 @@ class Camera:
 
         return rotated_point
 
+    def get_quads_from_block(self, block: Block) -> list[Convex_quad]:
+        relative_position: Point3D = self.position - block.position
+        quads: list[Convex_quad] = []
+        
+        if abs(relative_position.x) > 0.5: #Checks if the quadrilateral on the yz plane is visible from the camera
+            x_plane_pos: float = block.position.x + 0.5 * sign(relative_position.x) #The x position of the yz plane that the quadrilateral is on
+            points: list[Point3D] = [Point3D(x_plane_pos, block.position.y + 0.5, block.position.z + 0.5), 
+                                     Point3D(x_plane_pos, block.position.y + 0.5, block.position.z - 0.5), 
+                                     Point3D(x_plane_pos, block.position.y - 0.5, block.position.z - 0.5), 
+                                     Point3D(x_plane_pos, block.position.y - 0.5, block.position.z + 0.5)] #The projetions onto the screen of the 4 points that make up the quadrilateral
+
+            projected_points: list[Point2D] = [self.project_point_onto_screen(i) for i in points]
+
+            quads.append(Convex_quad((points[0] + points[1] + points[2] + points[3]) / 4, projected_points[0], projected_points[1], projected_points[2], projected_points[3], block.type.side_col))
+
+        if abs(relative_position.y) > 0.5: #Checks if the quadrilateral on the xz plane is visible from the camera
+            y_plane_pos: float = block.position.y + 0.5 * sign(relative_position.y) #The y position of the xz plane that the quadrilateral is on
+            points: list[Point3D] = [Point3D(block.position.x + 0.5, y_plane_pos, block.position.z + 0.5), 
+                                     Point3D(block.position.x + 0.5, y_plane_pos, block.position.z - 0.5), 
+                                     Point3D(block.position.x - 0.5, y_plane_pos, block.position.z - 0.5), 
+                                     Point3D(block.position.x - 0.5, y_plane_pos, block.position.z + 0.5)] #The projetions onto the screen of the 4 points that make up the quadrilateral
+            
+            projected_points: list[Point2D] = [self.project_point_onto_screen(i) for i in points]
+
+            if relative_position.y > 0:
+                quads.append(Convex_quad((points[0] + points[1] + points[2] + points[3]) / 4, projected_points[0], projected_points[1], projected_points[2], projected_points[3], block.type.top_col))
+            else:
+                quads.append(Convex_quad((points[0] + points[1] + points[2] + points[3]) / 4, projected_points[0], projected_points[1], projected_points[2], projected_points[3], block.type.bottom_col))
+            
+        if abs(relative_position.z) > 0.5: #Checks if the quadrilateral on the xy plane is visible from the camera
+    
+            z_plane_pos: float = block.position.z + 0.5 * sign(relative_position.z) #The z position of the xy plane that the quadrilateral is on
+            points: list[Point3D] = [Point3D(block.position.x + 0.5, block.position.y + 0.5, z_plane_pos), 
+                                     Point3D(block.position.x + 0.5, block.position.y - 0.5, z_plane_pos), 
+                                     Point3D(block.position.x - 0.5, block.position.y - 0.5, z_plane_pos), 
+                                     Point3D(block.position.x - 0.5, block.position.y + 0.5, z_plane_pos)] #The projetions onto the screen of the 4 points that make up the quadrilateral
+
+            projected_points: list[Point2D] = [self.project_point_onto_screen(i) for i in points]
+
+            quads.append(Convex_quad((points[0] + points[1] + points[2] + points[3]) / 4, projected_points[0], projected_points[1], projected_points[2], projected_points[3], block.type.side_col))
+        
+        return quads
+
+    def gather_quads_from_chunk(self, chunk: Chunk):
+        for x in range(CHUNK_SIZE):
+            for y in range(CHUNK_SIZE):
+                for z in range(CHUNK_SIZE):
+                    block_data = chunk.get_block(x, y, z)
+
+                    if block_data != 0:
+                        self.quads_to_draw += self.get_quads_from_block(Block(chunk.position * CHUNK_SIZE + Point3D(x, y, z), block_types[block_data]))
+    
+    def quad_distance_to_self(self, quad: Convex_quad):
+        return quad.position_3D.distance_to(self.position)
+    
+    def filter_quads(self):
+        n_quads_to_draw: list[Convex_quad] = []
+        for i in self.quads_to_draw:
+            if i.is_visible(Point2D(self.screen_width, self.screen_height)):
+                n_quads_to_draw.append(i)
+
+        self.quads_to_draw = n_quads_to_draw
+
+    def sort_quads(self):
+        self.quads_to_draw.sort(key=self.quad_distance_to_self, reverse=True)
+
+    def draw_all_quads(self):
+        for i in self.quads_to_draw:
+            i.draw_filled_and_border()
+        self.quads_to_draw = []
+
+    def quad_is_on_screen(self, p1: Point2D, p2: Point2D, p3: Point2D, p4: Point2D) -> bool:
+        quad_is_visible: bool = False
+        for i in [p1, p2, p3, p4]:
+            if i.x >= 0 and i.x < self.screen_width and i.y >= 0 and i.y < self.screen_height:
+                quad_is_visible = True
+                break
+        
+        return quad_is_visible
+
     def rotate(self, pitch_rotation, yaw_rotation):
         """
         Rotates the camera while making sure that the yaw is between -180 and 180 and that the pitch is between -90 and 90.
@@ -171,3 +215,8 @@ class Camera:
             self.pitch = 90
         if self.pitch < -90:
             self.pitch = -90
+    
+    def change_fov(self, new_fov: float):
+        self.fov: float = new_fov
+        self.min_slope_x: float = tan(radians(90 - self.fov / 2.0)) #The minimum slope a point can have relative to the camera and remain on screen in the x dimension
+        self.min_slope_y: float = self.min_slope_x / self.screen_width * self.screen_height * 2 #The minimum slope a point can have relative to the camera and remain on screen in the y dimension
