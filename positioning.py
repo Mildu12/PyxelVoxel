@@ -96,5 +96,8 @@ class Point3D:
     def __round__(self) -> "Point3D":
         return Point3D(round(self.x), round(self.y), round(self.z))
 
+    def __eq__(self, other: "Point3D") -> bool:
+        return True if (self.x == other.x and self.y == other.y and self.z == other.z) else False
+
     def clone(self) -> "Point3D":
         return Point3D(self.x, self.y, self.z)

@@ -7,9 +7,10 @@ position = Point3D(0.0, 0.0, 0.0)
 move_speed = 6.0
 rotate_speed = 60
 
-WIDTH, HEIGHT = int(160 * 1.5), int(90 * 1.5)
+WIDTH, HEIGHT = int(160 * 4), int(120 * 4)
 FPS = 60
-fov = 90
+render_distance = 4
+fov = 105
 
 pyxel.init(WIDTH, HEIGHT, "Minexel", fps=FPS)
 
@@ -20,8 +21,8 @@ def clamp(x, max, min):
         return min
     return x
 
-main_cam = Camera(Point3D(0.0, 1.0, -5.0), fov, WIDTH, HEIGHT)
-chunk = Chunk(Point3D(0, 0, 0))
+world = World(4, render_distance)
+main_cam = Camera(Point3D(0.0, world.get_terrain_height_at_point(Point3D(0, 0, 0)) + 2, 0.0), fov, WIDTH, HEIGHT)
 
 def update():
     global fov
@@ -55,19 +56,10 @@ def update():
         main_cam.rotate(-rotate_speed / FPS, 0.0)
     if pyxel.btn(pyxel.KEY_DOWN):
         main_cam.rotate(+rotate_speed / FPS, 0.0)
-
-    if pyxel.btn(pyxel.KEY_E):
-        fov += 1
-        main_cam.change_fov(fov)
-    if pyxel.btn(pyxel.KEY_Q):
-        fov -= 1
-        main_cam.change_fov(fov)
    
+    world.generate_necessary_chunks(main_cam.position)
+
 def draw():
-    pyxel.cls(6)
-    main_cam.gather_quads_from_chunk(chunk)
-    main_cam.filter_quads()
-    main_cam.sort_quads()
-    main_cam.draw_all_quads()
+    main_cam.draw_world(world)
 
 pyxel.run(update, draw)
