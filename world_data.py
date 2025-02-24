@@ -5,11 +5,17 @@ import noise
         
 CHUNK_SIZE = 8
 
+class Point_to_project:
+    def __init__(self, position_3D: Point3D, current_frame: int):
+        self.position_3D: Point3D = position_3D
+        self.current_frame: int = current_frame
+        self.projected_position: Point2D = Point2D(0, 0)
+
 class Convex_quad_3D:
-    def __init__(self, center: Point3D, p1: Point3D, p2: Point3D, p3: Point3D, p4: Point3D, col: int):
-        self.points = [p1, p2, p3, p4]
-        self.center = center
-        self.col = col
+    def __init__(self, center: Point3D, p1: Point_to_project, p2: Point_to_project, p3: Point_to_project, p4: Point_to_project, col: int):
+        self.points: list[Point_to_project] = [p1, p2, p3, p4]
+        self.center: Point3D = center
+        self.col: int = col
 
 class Chunk:
     """Container for a 8x8x8 group of blocks"""
@@ -18,7 +24,7 @@ class Chunk:
         self.blocks: list[list[list[int]]] = [[[0 for z in range(CHUNK_SIZE)] for y in range(CHUNK_SIZE)] for x in range(CHUNK_SIZE)]
         self.quads: list[Convex_quad_3D] = []
 
-    def generate_quads(self, world: "World"):
+    def generate_quads(self, world: "World", current_frame: int):
         quads: list[Convex_quad_3D] = []
         for x in range(CHUNK_SIZE):
             for y in range(CHUNK_SIZE):
@@ -28,10 +34,10 @@ class Chunk:
                             quad_pos = Point3D(CHUNK_SIZE * self.position.x + x - 0.5, CHUNK_SIZE * self.position.y + y, CHUNK_SIZE * self.position.z + z)
                             quads.append(Convex_quad_3D(
                                                         quad_pos,
-                                                        Point3D(quad_pos.x, quad_pos.y + 0.5, quad_pos.z + 0.5),
-                                                        Point3D(quad_pos.x, quad_pos.y - 0.5, quad_pos.z + 0.5),
-                                                        Point3D(quad_pos.x, quad_pos.y - 0.5, quad_pos.z - 0.5),
-                                                        Point3D(quad_pos.x, quad_pos.y + 0.5, quad_pos.z - 0.5),
+                                                        Point_to_project(Point3D(quad_pos.x, quad_pos.y + 0.5, quad_pos.z + 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x, quad_pos.y - 0.5, quad_pos.z + 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x, quad_pos.y - 0.5, quad_pos.z - 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x, quad_pos.y + 0.5, quad_pos.z - 0.5), current_frame),
                                                         block_types[self.get_block(x, y, z)].side_col
                                                         ))
                         
@@ -40,10 +46,10 @@ class Chunk:
                             quad_pos = Point3D(CHUNK_SIZE * self.position.x + x + 0.5, CHUNK_SIZE * self.position.y + y, CHUNK_SIZE * self.position.z + z)
                             quads.append(Convex_quad_3D(
                                                         quad_pos,
-                                                        Point3D(quad_pos.x, quad_pos.y + 0.5, quad_pos.z + 0.5),
-                                                        Point3D(quad_pos.x, quad_pos.y - 0.5, quad_pos.z + 0.5),
-                                                        Point3D(quad_pos.x, quad_pos.y - 0.5, quad_pos.z - 0.5),
-                                                        Point3D(quad_pos.x, quad_pos.y + 0.5, quad_pos.z - 0.5),
+                                                        Point_to_project(Point3D(quad_pos.x, quad_pos.y + 0.5, quad_pos.z + 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x, quad_pos.y - 0.5, quad_pos.z + 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x, quad_pos.y - 0.5, quad_pos.z - 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x, quad_pos.y + 0.5, quad_pos.z - 0.5), current_frame),
                                                         block_types[self.get_block(x, y, z)].side_col
                                                         ))
 
@@ -51,10 +57,10 @@ class Chunk:
                             quad_pos = Point3D(CHUNK_SIZE * self.position.x + x, CHUNK_SIZE * self.position.y + y - 0.5, CHUNK_SIZE * self.position.z + z)
                             quads.append(Convex_quad_3D(
                                                         quad_pos,
-                                                        Point3D(quad_pos.x + 0.5, quad_pos.y, quad_pos.z + 0.5),
-                                                        Point3D(quad_pos.x - 0.5, quad_pos.y, quad_pos.z + 0.5),
-                                                        Point3D(quad_pos.x - 0.5, quad_pos.y, quad_pos.z - 0.5),
-                                                        Point3D(quad_pos.x + 0.5, quad_pos.y, quad_pos.z - 0.5),
+                                                        Point_to_project(Point3D(quad_pos.x + 0.5, quad_pos.y, quad_pos.z + 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x - 0.5, quad_pos.y, quad_pos.z + 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x - 0.5, quad_pos.y, quad_pos.z - 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x + 0.5, quad_pos.y, quad_pos.z - 0.5), current_frame),
                                                         block_types[self.get_block(x, y, z)].bottom_col
                                                         ))
 
@@ -62,10 +68,10 @@ class Chunk:
                             quad_pos = Point3D(CHUNK_SIZE * self.position.x + x, CHUNK_SIZE * self.position.y + y + 0.5, CHUNK_SIZE * self.position.z + z)
                             quads.append(Convex_quad_3D(
                                                         quad_pos,
-                                                        Point3D(quad_pos.x + 0.5, quad_pos.y, quad_pos.z + 0.5),
-                                                        Point3D(quad_pos.x - 0.5, quad_pos.y, quad_pos.z + 0.5),
-                                                        Point3D(quad_pos.x - 0.5, quad_pos.y, quad_pos.z - 0.5),
-                                                        Point3D(quad_pos.x + 0.5, quad_pos.y, quad_pos.z - 0.5),
+                                                        Point_to_project(Point3D(quad_pos.x + 0.5, quad_pos.y, quad_pos.z + 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x - 0.5, quad_pos.y, quad_pos.z + 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x - 0.5, quad_pos.y, quad_pos.z - 0.5), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x + 0.5, quad_pos.y, quad_pos.z - 0.5), current_frame),
                                                         block_types[self.get_block(x, y, z)].top_col
                                                         ))
     
@@ -73,10 +79,10 @@ class Chunk:
                             quad_pos = Point3D(CHUNK_SIZE * self.position.x + x, CHUNK_SIZE * self.position.y + y, CHUNK_SIZE * self.position.z + z - 0.5)
                             quads.append(Convex_quad_3D(
                                                         quad_pos,
-                                                        Point3D(quad_pos.x + 0.5, quad_pos.y + 0.5, quad_pos.z),
-                                                        Point3D(quad_pos.x - 0.5, quad_pos.y + 0.5, quad_pos.z),
-                                                        Point3D(quad_pos.x - 0.5, quad_pos.y - 0.5, quad_pos.z),
-                                                        Point3D(quad_pos.x + 0.5, quad_pos.y - 0.5, quad_pos.z),
+                                                        Point_to_project(Point3D(quad_pos.x + 0.5, quad_pos.y + 0.5, quad_pos.z), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x - 0.5, quad_pos.y + 0.5, quad_pos.z), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x - 0.5, quad_pos.y - 0.5, quad_pos.z), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x + 0.5, quad_pos.y - 0.5, quad_pos.z), current_frame),
                                                         block_types[self.get_block(x, y, z)].side_col
                                                         ))
 
@@ -84,10 +90,10 @@ class Chunk:
                             quad_pos = Point3D(CHUNK_SIZE * self.position.x + x, CHUNK_SIZE * self.position.y + y, CHUNK_SIZE * self.position.z + z + 0.5)
                             quads.append(Convex_quad_3D(
                                                         quad_pos,
-                                                        Point3D(quad_pos.x + 0.5, quad_pos.y + 0.5, quad_pos.z),
-                                                        Point3D(quad_pos.x - 0.5, quad_pos.y + 0.5, quad_pos.z),
-                                                        Point3D(quad_pos.x - 0.5, quad_pos.y - 0.5, quad_pos.z),
-                                                        Point3D(quad_pos.x + 0.5, quad_pos.y - 0.5, quad_pos.z),
+                                                        Point_to_project(Point3D(quad_pos.x + 0.5, quad_pos.y + 0.5, quad_pos.z), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x - 0.5, quad_pos.y + 0.5, quad_pos.z), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x - 0.5, quad_pos.y - 0.5, quad_pos.z), current_frame),
+                                                        Point_to_project(Point3D(quad_pos.x + 0.5, quad_pos.y - 0.5, quad_pos.z), current_frame),
                                                         block_types[self.get_block(x, y, z)].side_col
                                                         ))
 
@@ -108,7 +114,7 @@ class World:
         self.mountain_terrain_scale = 0.002
         self.render_distance = render_distance
     
-    def generate_chunk(self, point3D: Point3D):
+    def generate_chunk(self, point3D: Point3D, frame: int):
         chunk_to_add = Chunk(point3D)
 
         for x in range(CHUNK_SIZE):
@@ -117,11 +123,11 @@ class World:
                     block_pos = point3D * CHUNK_SIZE + Point3D(x, y, z)
                     chunk_to_add.set_block(self.generate_block(block_pos), x, y, z)
 
-        chunk_to_add.generate_quads(self)
+        chunk_to_add.generate_quads(self, frame)
         
         return chunk_to_add
 
-    def generate_necessary_chunks(self, camera_pos: Point3D):
+    def generate_necessary_chunks(self, camera_pos: Point3D, frame: int):
         current_chunk = Point3D(camera_pos.x // CHUNK_SIZE, camera_pos.y // CHUNK_SIZE, camera_pos.z // CHUNK_SIZE)
 
         n_chunks: dict[tuple[int], Chunk] = {}
@@ -133,7 +139,7 @@ class World:
                         if (current_chunk.x + x, current_chunk.y + y, current_chunk.z + z) in self.chunks:
                             n_chunks[(current_chunk.x + x, current_chunk.y + y, current_chunk.z + z)] = self.chunks[(current_chunk.x + x, current_chunk.y + y, current_chunk.z + z)]
                         else:
-                            n_chunks[(current_chunk.x + x, current_chunk.y + y, current_chunk.z + z)] = self.generate_chunk(Point3D(current_chunk.x + x, current_chunk.y + y, current_chunk.z + z))
+                            n_chunks[(current_chunk.x + x, current_chunk.y + y, current_chunk.z + z)] = self.generate_chunk(Point3D(current_chunk.x + x, current_chunk.y + y, current_chunk.z + z), frame)
         
         self.chunks = n_chunks
 

@@ -118,9 +118,15 @@ class Camera:
 
         return rotated_point
 
-    def gather_quads_from_chunk(self, chunk: Chunk):
+    def gather_quads_from_chunk(self, chunk: Chunk, current_frame: int):
         for quad in chunk.quads:
-            points = [self.project_point_onto_screen(i) for i in quad.points]
+            points = []
+            for i in quad.points:
+                if i.current_frame != current_frame + 1:
+                    i.projected_position = self.project_point_onto_screen(i.position_3D)
+                    i.current_frame = current_frame + 1
+                points.append(i.projected_position)
+                    
 
             self.quads_to_draw.append(Convex_quad(quad.center, points[0], points[1], points[2], points[3], quad.col))
 
@@ -175,10 +181,10 @@ class Camera:
         self.min_slope_x: float = tan(radians(self.fov / 2.0)) #The minimum slope a point can have relative to the camera and remain on screen in the x dimension
         self.min_slope_y: float = self.min_slope_x / self.screen_width * self.screen_height * 2 #The minimum slope a point can have relative to the camera and remain on screen in the y dimension
 
-    def draw_world(self, world: World):
+    def draw_world(self, world: World, current_frame: int):
         pyxel.cls(self.bg)
         for i in world.chunks:
-            self.gather_quads_from_chunk(world.chunks[i])
+            self.gather_quads_from_chunk(world.chunks[i], current_frame)
         self.filter_quads()
         self.sort_quads()
         self.draw_all_quads()
