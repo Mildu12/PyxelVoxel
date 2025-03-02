@@ -111,7 +111,7 @@ class World:
         self.chunks: dict[tuple[int], Chunk] = {}
         self.main_terrain_scale = 0.05
         self.hill_terrain_scale = 0.01
-        self.mountain_terrain_scale = 0.002
+        self.mountain_terrain_scale = 0.0005
         self.render_distance = render_distance
     
     def generate_chunk(self, point3D: Point3D, frame: int):
@@ -149,5 +149,5 @@ class World:
     def get_terrain_height_at_point(self, point3D: Point3D):
         detail_height = (noise.pnoise2(float(point3D.x * self.main_terrain_scale), float(point3D.z * self.main_terrain_scale), base=self.seed) + 1) * 5
         hill_height = ((noise.pnoise2(float(point3D.x * self.hill_terrain_scale), float(point3D.z * self.hill_terrain_scale), base=self.seed * 2) + 1) / 2) ** 0.75 * 15
-        mountain_height = ((noise.pnoise2(float(point3D.x * self.mountain_terrain_scale), float(point3D.z * self.mountain_terrain_scale), base=self.seed * 3) + 1) / 2) * 50
+        mountain_height = 3 ** ((noise.pnoise2(float(point3D.x * self.mountain_terrain_scale), float(point3D.z * self.mountain_terrain_scale), base=int(self.seed / 2)) + 1) / 2) * 350
         return detail_height + hill_height + mountain_height

@@ -19,14 +19,16 @@ class Convex_quad:
         self.colb: int = colb
 
 
-    def draw_filled(self):
+    def draw_filled(self, alpha: float = 1.0):
         """
         Draws a filled-in convex quadrilateral
         Points in clockwise order
         """
         #Divides the quadrilateral into two triangles and draws the two triangles
+        pyxel.dither(alpha)
         pyxel.tri(self.p1.x, self.p1.y, self.p2.x, self.p2.y, self.p4.x, self.p4.y, self.col)
         pyxel.tri(self.p2.x, self.p2.y, self.p3.x, self.p3.y, self.p4.x, self.p4.y, self.col)
+        pyxel.dither(1.0)
 
     def draw_border(self):
         """
@@ -39,13 +41,13 @@ class Convex_quad:
         pyxel.line(self.p3.x, self.p3.y, self.p4.x, self.p4.y, self.colb)
         pyxel.line(self.p4.x, self.p4.y, self.p1.x, self.p1.y, self.colb)
 
-    def draw_filled_and_border(self):
+    def draw_filled_and_border(self, alpha: float = 1.0):
         """
         Combination of convex_quad and convex_quad_border
         Points in clockwise order
         """
 
-        self.draw_filled()
+        self.draw_filled(alpha)
         self.draw_border()
     
     def is_visible(self, screen_size: Point2D) -> bool:
@@ -62,13 +64,14 @@ class Convex_quad:
 
 class Camera:
     """Handles drawing of all 3D elements onto the screen"""
-    def __init__(self, camera_position: Point3D, fov: float, screen_width, screen_height, bg_col = 6, pitch: float = 0.0, yaw: float = 0.0):
+    def __init__(self, camera_position: Point3D, fov: float, screen_width: int, screen_height: int, render_distance: int, bg_col: int = 6, pitch: float = 0.0, yaw: float = 0.0):
         self.position: Point3D = camera_position
         self.pitch: float = pitch
         self.yaw: float = yaw
         self.screen_width: int = screen_width
         self.screen_height: int = screen_height
-        self.bg = 6
+        self.render_distance = render_distance
+        self.bg = bg_col
 
         self.fov: float
         self.y_fov: float
@@ -146,7 +149,12 @@ class Camera:
 
     def draw_all_quads(self):
         for i in self.quads_to_draw:
-            i.draw_filled_and_border()
+            alpha = -0.125 * i.position_3D.distance_to(self.position) + self.render_distance - 0.25
+
+            if alpha > 1:
+                i.draw_filled_and_border()
+            else:
+                i.draw_filled(alpha)
         self.quads_to_draw = []
 
     def quad_is_on_screen(self, p1: Point2D, p2: Point2D, p3: Point2D, p4: Point2D) -> bool:
