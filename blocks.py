@@ -8,7 +8,9 @@ class Block_type:
         self.bottom_col: int = bottom_col
 
 block_types = {
-    1: Block_type(3, 4, 4)
+    1: Block_type(3, 4, 4),
+    2: Block_type(4, 4, 4),
+    3: Block_type(13, 13, 13)
 }
 
 class Block:

@@ -1,4 +1,4 @@
-from math import sqrt, copysign
+from math import sqrt, copysign, floor
 
 class Point2D:
     """Class for representing positions, distances or sizes in 2d space."""
@@ -44,6 +44,9 @@ class Point2D:
 
     def __round__(self) -> "Point2D":
         return Point2D(round(self.x), round(self.y))
+    
+    def __floor__(self) -> "Point2D":
+        return Point3D(floor(self.x), floor(self.y))
 
     def clone(self) -> "Point2D":
         return Point2D(self.x, self.y)
@@ -96,8 +99,14 @@ class Point3D:
     def __round__(self) -> "Point3D":
         return Point3D(round(self.x), round(self.y), round(self.z))
 
+    def __floor__(self) -> "Point3D":
+        return Point3D(floor(self.x), floor(self.y), floor(self.z))
+
     def __eq__(self, other: "Point3D") -> bool:
         return True if (self.x == other.x and self.y == other.y and self.z == other.z) else False
+
+    def __hash__(self):
+        return hash((self.x, self.y, self.z))
 
     def clone(self) -> "Point3D":
         return Point3D(self.x, self.y, self.z)

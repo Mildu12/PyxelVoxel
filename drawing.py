@@ -3,10 +3,23 @@ from positioning import *
 from math import tan, radians, sqrt
 from world_data import *
 from blocks import *
+from time import time
 
 def sign(x) -> int:
     """Returns 1 if x >= 0 and -1 if x < 0"""
     return 1 if x >= 0 else -1
+
+class Line_to_draw:
+    def __init__(self, p1: Point2D, p2: Point2D, col: int):
+        self.p1 = p1
+        self.p2 = p2
+        self.col = col
+    
+    def draw(self):
+        pyxel.line(self.p1.x, self.p1.y, self.p2.x, self.p2.y, self.col)
+    
+    def __hash__(self):
+        hash(self.p1, self.p2)
 
 class Convex_quad:
     def __init__(self, position_3D: Point3D, p1: Point2D, p2: Point2D, p3: Point2D, p4: Point2D, col: int, colb: int = 0):
@@ -17,7 +30,6 @@ class Convex_quad:
         self.p4: Point2D = p4
         self.col: int = col
         self.colb: int = colb
-
 
     def draw_filled(self, alpha: float = 1.0):
         """
@@ -122,20 +134,29 @@ class Camera:
         return rotated_point
 
     def gather_quads_from_chunk(self, chunk: Chunk, current_frame: int):
-        for quad in chunk.quads:
+        for key in chunk.quads:
             points = []
+            quad = chunk.quads[key]
             for i in quad.points:
                 if i.current_frame != current_frame + 1:
                     i.projected_position = self.project_point_onto_screen(i.position_3D)
                     i.current_frame = current_frame + 1
                 points.append(i.projected_position)
-                    
 
-            self.quads_to_draw.append(Convex_quad(quad.center, points[0], points[1], points[2], points[3], quad.col))
+
+            quad_2D = Convex_quad(key, points[0], points[1], points[2], points[3], quad.col)
+
+            if quad.selected:
+                quad_2D.colb = 10
+
+            self.quads_to_draw.append(quad_2D)
 
     def quad_distance_to_self(self, quad: Convex_quad):
-        return quad.position_3D.distance_to(self.position)
-    
+        if quad.colb == 0:
+            return quad.position_3D.distance_to(self.position)
+        else:
+            return quad.position_3D.distance_to(self.position) - 0.75
+
     def filter_quads(self):
         n_quads_to_draw: list[Convex_quad] = []
         for i in self.quads_to_draw:
@@ -143,13 +164,14 @@ class Camera:
                 n_quads_to_draw.append(i)
 
         self.quads_to_draw = n_quads_to_draw
-
+        
     def sort_quads(self):
         self.quads_to_draw.sort(key=self.quad_distance_to_self, reverse=True)
 
     def draw_all_quads(self):
+        st = time()
         for i in self.quads_to_draw:
-            alpha = -0.125 * i.position_3D.distance_to(self.position) + self.render_distance - 0.25
+            alpha = -0.125 * i.position_3D.distance_to(self.position) + self.render_distance - 0.5
 
             if alpha > 1:
                 i.draw_filled_and_border()
